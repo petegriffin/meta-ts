@@ -14,6 +14,7 @@ OPTEEOUTPUTMACHINE = "rockchip"
 EXTRA_OEMAKE += " PLATFORM_FLAVOR=rk3399 ARCH=arm"
 
 # Uncoment to enable verbose logs
+#EXTRA_OEMAKE:remove = "CFG_TEE_CORE_LOG_LEVEL=2"
 #EXTRA_OEMAKE += " CFG_TEE_CORE_LOG_LEVEL=4 "
 
 # Buggy optee

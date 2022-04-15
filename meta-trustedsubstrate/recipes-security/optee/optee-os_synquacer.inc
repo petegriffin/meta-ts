@@ -10,9 +10,9 @@ COMPATIBLE_MACHINE = "synquacer"
 OPTEEMACHINE = "synquacer"
 OPTEEOUTPUTMACHINE = "synquacer"
 
-# Enable optee memory layout and boot logs
-# EXTRA_OEMAKE += " CFG_TEE_CORE_LOG_LEVEL=4"
-EXTRA_OEMAKE += " CFG_TEE_CORE_LOG_LEVEL=1"
+# Uncoment to enable verbose logs
+#EXTRA_OEMAKE:remove = "CFG_TEE_CORE_LOG_LEVEL=2"
+#EXTRA_OEMAKE += " CFG_TEE_CORE_LOG_LEVEL=4"
 
 # default disable latency benchmarks (over all OP-TEE layers)
 EXTRA_OEMAKE += " CFG_TEE_BENCHMARK=n"

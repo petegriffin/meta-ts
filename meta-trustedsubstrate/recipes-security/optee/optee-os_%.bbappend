@@ -18,3 +18,5 @@ require ${MACHINE_OPTEE_OS_REQUIRE}
 DEPENDS += " python3-cryptography-native "
 EXTRA_OEMAKE:append = " CFG_IN_TREE_EARLY_TAS=pkcs11/fd02c9da-306c-48c7-a49c-bbd827ae86ee "
 EXTRA_OEMAKE:append = " CFG_CORE_HEAP_SIZE=131072 "
+# OP-TEE log level 2 is INFO
+EXTRA_OEMAKE:append = " CFG_TEE_CORE_LOG_LEVEL=2"
