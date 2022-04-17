@@ -1,0 +1,70 @@
+From 99d105322ac35cd44d615c9586875d536cb37f8c Mon Sep 17 00:00:00 2001
+From: Peter Griffin <peter.griffin@linaro.org>
+Date: Wed, 13 Apr 2022 16:50:01 +0100
+Subject: [PATCH] spl_atf: pass dt addr to bl33
+
+In some cases this is u-boot proper (bl33) and we have
+returned from optee-os which has re-written the dt and
+reserved its memory.
+
+This allows us to pick up the re-written DT in u-boot.
+
+Signed-off-by: Peter Griffin <peter.griffin@linaro.org>
+---
+ common/spl/spl_atf.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/common/spl/spl_atf.c b/common/spl/spl_atf.c
+index e1b68dd561..f4bc19d371 100644
+--- a/common/spl/spl_atf.c
++++ b/common/spl/spl_atf.c
+@@ -18,6 +18,10 @@
+ #include <spl.h>
+ #include <asm/cache.h>
+ 
++#define DEBUG
++#undef CONFIG_LOGLEVEL
++#define CONFIG_LOGLEVEL 8
++
+ /* Holds all the structures we need for bl31 parameter passing */
+ struct bl2_to_bl31_params_mem {
+ 	struct bl31_params bl31_params;
+@@ -73,6 +77,7 @@ struct bl31_params *bl2_plat_get_bl31_params_default(uintptr_t bl32_entry,
+ 		       ATF_EP_SECURE);
+ 
+ 	/* secure payload is optional, so set pc to 0 if absent */
++	printf("%s: fdt_addr=%p\n",__FUNCTION__, fdt_addr);
+ 	bl32_ep_info->args.arg3 = fdt_addr;
+ 	bl32_ep_info->pc = bl32_entry ? bl32_entry : 0;
+ 	bl32_ep_info->spsr = SPSR_64(MODE_EL1, MODE_SP_ELX,
+@@ -90,6 +95,9 @@ struct bl31_params *bl2_plat_get_bl31_params_default(uintptr_t bl32_entry,
+ 
+ 	/* BL33 expects to receive the primary CPU MPID (through x0) */
+ 	bl33_ep_info->args.arg0 = 0xffff & read_mpidr();
++	printf("%s: fdt_addr=%p\n",__FUNCTION__, fdt_addr);
++	bl33_ep_info->args.arg0 = fdt_addr;
++
+ 	bl33_ep_info->pc = bl33_entry;
+ 	bl33_ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
+ 				     DISABLE_ALL_EXECPTIONS);
+@@ -147,6 +155,7 @@ struct bl_params *bl2_plat_get_bl31_params_v2_default(uintptr_t bl32_entry,
+ 		       ATF_VERSION_2, ATF_EP_SECURE);
+ 
+ 	/* secure payload is optional, so set pc to 0 if absent */
++	printf("%s: fdt_addr=%p\n",__FUNCTION__, fdt_addr);
+ 	bl_params_node->ep_info->args.arg3 = fdt_addr;
+ 	bl_params_node->ep_info->pc = bl32_entry ? bl32_entry : 0;
+ 	bl_params_node->ep_info->spsr = SPSR_64(MODE_EL1, MODE_SP_ELX,
+@@ -165,6 +174,9 @@ struct bl_params *bl2_plat_get_bl31_params_v2_default(uintptr_t bl32_entry,
+ 
+ 	/* BL33 expects to receive the primary CPU MPID (through x0) */
+ 	bl_params_node->ep_info->args.arg0 = 0xffff & read_mpidr();
++	printf("%s: fdt_addr=%p\n",__FUNCTION__, fdt_addr);
++	bl_params_node->ep_info->args.arg0 = fdt_addr;
++
+ 	bl_params_node->ep_info->pc = bl33_entry;
+ 	bl_params_node->ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
+ 						DISABLE_ALL_EXECPTIONS);
+-- 
+2.25.1
+

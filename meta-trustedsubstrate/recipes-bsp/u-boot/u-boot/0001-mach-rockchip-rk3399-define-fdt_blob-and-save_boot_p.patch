@@ -91,7 +91,7 @@ index d40969c888..2a48b5fc25 100644
 +	void *fdt_blob = NULL;
 +	*err = 0;
 +
-+	debug("rk3399 fdt_blob_setup\n");
++	printf("rk3399 fdt_blob_setup\n");
 +	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
 +		/* FDT is at end of BSS unless it is in a different memory region */
 +		if (IS_ENABLED(CONFIG_SPL_SEPARATE_BSS))
@@ -99,21 +99,21 @@ index d40969c888..2a48b5fc25 100644
 +		else
 +	  		fdt_blob = (ulong *)&__bss_end;
 +
-+		debug("board_fdt_blob_setup fdt_blob=%p", fdt_blob);
++		printf("board_fdt_blob_setup fdt_blob=%p", fdt_blob);
 +		return fdt_blob;
 +	} else if (IS_ENABLED(CONFIG_SPL_BUILD)) {
 +		fdt_blob = (ulong *)&_end;
 +		return fdt_blob;
 +	}
 +
-+	debug("u-boot prop fw_dtb_pointer=%p", (void *)fw_dtb_pointer);
++	printf("u-boot prop fw_dtb_pointer=%p", (void *)fw_dtb_pointer);
 +
 +	if (fdt_magic(fw_dtb_pointer) != FDT_MAGIC) {
-+		debug("fdt_magic not found PAG");
++		printf("fdt_magic not found PAG");
 +		*err = -ENXIO;
 +		return NULL;
 +	}
-+	debug("board_fdt_blob_setup fw_dtb_pointer=%p", (void *)fw_dtb_pointer);
++	printf("board_fdt_blob_setup fw_dtb_pointer=%p", (void *)fw_dtb_pointer);
 +	return (void *)fw_dtb_pointer;
 +}
 +

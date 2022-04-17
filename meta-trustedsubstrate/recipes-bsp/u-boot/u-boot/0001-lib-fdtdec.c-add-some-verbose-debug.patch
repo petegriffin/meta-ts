@@ -1,0 +1,54 @@
+From 471845e82833ad904ce4450413b498701c62097d Mon Sep 17 00:00:00 2001
+From: Peter Griffin <peter.griffin@linaro.org>
+Date: Wed, 13 Apr 2022 19:58:36 +0100
+Subject: [PATCH] lib/fdtdec.c: add some verbose debug
+
+Signed-off-by: Peter Griffin <peter.griffin@linaro.org>
+---
+ lib/fdtdec.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/lib/fdtdec.c b/lib/fdtdec.c
+index 87aa677a4a..305f660efe 100644
+--- a/lib/fdtdec.c
++++ b/lib/fdtdec.c
+@@ -29,6 +29,10 @@
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#define DEBUG 1
++#undef CONFIG_LOGLEVEL
++#define CONFIG_LOGLEVEL 8
++
+ /*
+  * Here are the type we know about. One day we might allow drivers to
+  * register. For now we just put them here. The COMPAT macro allows us to
+@@ -613,6 +617,7 @@ int fdtdec_check_fdt(void)
+  */
+ int fdtdec_prepare_fdt(void)
+ {
++  	printf("%s:%d\n", __FUNCTION__, __LINE__);
+ 	if (!gd->fdt_blob || ((uintptr_t)gd->fdt_blob & 3) ||
+ 	    fdt_check_header(gd->fdt_blob)) {
+ #ifdef CONFIG_SPL_BUILD
+@@ -1648,12 +1653,15 @@ int fdtdec_setup(void)
+ 		gd->fdt_blob = dtb_dt_embedded();
+ 		gd->fdt_src = FDTSRC_EMBED;
+ 	}
+-
++	printf("%s:%d CONFIG_OF_BOARD=(%d)\n", __FUNCTION__, __LINE__, IS_ENABLED(CONFIG_OF_BOARD));
+ 	/* Allow the board to override the fdt address. */
+ 	if (IS_ENABLED(CONFIG_OF_BOARD)) {
++	  	printf("%s:%d\n", __FUNCTION__, __LINE__);
+ 		gd->fdt_blob = board_fdt_blob_setup(&ret);
+-		if (ret)
++		if (ret) {
++		  	printf("%s:%d ERR\n", __FUNCTION__, __LINE__);
+ 			return ret;
++		}
+ 		gd->fdt_src = FDTSRC_BOARD;
+ 	}
+ 
+-- 
+2.25.1
+
