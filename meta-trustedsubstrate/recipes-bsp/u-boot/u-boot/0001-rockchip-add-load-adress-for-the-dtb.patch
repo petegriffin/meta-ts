@@ -1,0 +1,50 @@
+From ea1f4d4ff2cd8fe84760f69308fddf9d4018bef0 Mon Sep 17 00:00:00 2001
+From: Maxim Uvarov <maxim.uvarov@linaro.org>
+Date: Wed, 6 Apr 2022 10:38:04 +0100
+Subject: [PATCH] rockchip: add load adress for the dtb
+
+define first dtb load address as 0x01000000 and use 128kb (0x20000)
+for each dtb.
+
+Signed-off-by: Maxim Uvarov <maxim.uvarov@linaro.org>
+---
+ arch/arm/mach-rockchip/make_fit_atf.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/mach-rockchip/make_fit_atf.py b/arch/arm/mach-rockchip/make_fit_atf.py
+index f3224d2555..3bd2c7c2ad 100755
+--- a/arch/arm/mach-rockchip/make_fit_atf.py
++++ b/arch/arm/mach-rockchip/make_fit_atf.py
+@@ -78,7 +78,7 @@ def append_tee_node(file, atf_index, phy_addr, elf_entry):
+     file.write('\t\t};\n')
+     file.write('\n')
+ 
+-def append_fdt_node(file, dtbs):
++def append_fdt_node(file, phy_addr, dtbs):
+     # Append FDT nodes.
+     cnt = 1
+     for dtb in dtbs:
+@@ -88,9 +88,11 @@ def append_fdt_node(file, dtbs):
+         file.write('\t\t\tdata = /incbin/("%s");\n' % dtb)
+         file.write('\t\t\ttype = "flat_dt";\n')
+         file.write('\t\t\tcompression = "none";\n')
++        file.write('\t\t\tload = <0x%08x>;\n' % phy_addr)
+         file.write('\t\t};\n')
+         file.write('\n')
+         cnt = cnt + 1
++        phy_addr = phy_addr + 0x20000;
+ 
+ def append_conf_section(file, cnt, dtname, segments):
+     file.write('\t\tconfig_%d {\n' % cnt)
+@@ -142,7 +144,7 @@ def generate_atf_fit_dts_bl31(fit_file, bl31_file_name, tee_file_name, dtbs_file
+             append_tee_node(fit_file, num_segments + index + 1, paddr, entry)
+         num_segments = num_segments + len(tee_segments)
+ 
+-    append_fdt_node(fit_file, dtbs_file_name)
++    append_fdt_node(fit_file, 0x01000000, dtbs_file_name)
+     fit_file.write(DT_IMAGES_NODE_END)
+     append_conf_node(fit_file, dtbs_file_name, num_segments)
+ 
+-- 
+2.17.1
+

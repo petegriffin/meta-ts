@@ -1,0 +1,28 @@
+From 42504a2110a8cc5ce117dcefcd8d6ae8abd69f89 Mon Sep 17 00:00:00 2001
+From: Maxim Uvarov <maxim.uvarov@linaro.org>
+Date: Thu, 7 Apr 2022 16:42:42 +0100
+Subject: [PATCH] rockchip: do not add SPL_ATF_NO_PLATFORM_PARAM
+
+SPL_ATF_NO_PLATFORM_PARAM omits passing dtb parameter
+to upper layer.
+
+Signed-off-by: Maxim Uvarov <maxim.uvarov@linaro.org>
+---
+ arch/arm/mach-rockchip/Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/arm/mach-rockchip/Kconfig b/arch/arm/mach-rockchip/Kconfig
+index 92f35309e4..10a4457ce5 100644
+--- a/arch/arm/mach-rockchip/Kconfig
++++ b/arch/arm/mach-rockchip/Kconfig
+@@ -227,7 +227,6 @@ config ROCKCHIP_RK3399
+ 	imply PRE_CONSOLE_BUFFER
+ 	imply ROCKCHIP_COMMON_BOARD
+ 	imply ROCKCHIP_SDRAM_COMMON
+-	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
+ 	imply SPL_ROCKCHIP_COMMON_BOARD
+ 	imply TPL_SERIAL
+ 	imply TPL_LIBCOMMON_SUPPORT
+-- 
+2.17.1
+
