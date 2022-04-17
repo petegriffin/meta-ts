@@ -10,6 +10,7 @@ SRC_URI:append = " file://0001-mach-rockchip-make_fit_atf.py-support-OP-TEE-tee.
 SRC_URI:append = " file://0001-rk3399_common-add-dfu_alt_info-for-rockpi4b.patch"
 SRC_URI:append = " file://0001-rockchip-add-load-adress-for-the-dtb.patch"
 SRC_URI:append = " file://0001-rockchip-do-not-add-SPL_ATF_NO_PLATFORM_PARAM.patch"
+SRC_URI:append = " file://0001-mach-rockchip-rk3399-define-fdt_blob-and-save_boot_p.patch"
 
 COMPATIBLE_MACHINE = "rockpi4b"
 

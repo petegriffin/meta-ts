@@ -1,0 +1,133 @@
+From ea2037107baa396eefafe5b89af602153d9c383e Mon Sep 17 00:00:00 2001
+From: Peter Griffin <peter.griffin@linaro.org>
+Date: Wed, 13 Apr 2022 12:53:43 +0100
+Subject: [PATCH] mach-rockchip/rk3399: define fdt_blob and save_boot_params
+ for u-boot proper
+
+Signed-off-by: Peter Griffin <peter.griffin@linaro.org>
+---
+ arch/arm/mach-rockchip/rk3399/Makefile        |  5 +++
+ arch/arm/mach-rockchip/rk3399/lowlevel_init.S | 27 +++++++++++
+ arch/arm/mach-rockchip/rk3399/rk3399.c        | 45 +++++++++++++++++++
+ 3 files changed, 77 insertions(+)
+ create mode 100644 arch/arm/mach-rockchip/rk3399/lowlevel_init.S
+
+diff --git a/arch/arm/mach-rockchip/rk3399/Makefile b/arch/arm/mach-rockchip/rk3399/Makefile
+index 98ebeac340..b9840aee23 100644
+--- a/arch/arm/mach-rockchip/rk3399/Makefile
++++ b/arch/arm/mach-rockchip/rk3399/Makefile
+@@ -7,3 +7,8 @@
+ obj-y += clk_rk3399.o
+ obj-y += rk3399.o
+ obj-y += syscon_rk3399.o
++ifndef CONFIG_SPL_BUILD
++ifndef CONFIG_TPL_BUILD
++obj-y += lowlevel_init.o
++endif
++endif
+diff --git a/arch/arm/mach-rockchip/rk3399/lowlevel_init.S b/arch/arm/mach-rockchip/rk3399/lowlevel_init.S
+new file mode 100644
+index 0000000000..8c39b3e12e
+--- /dev/null
++++ b/arch/arm/mach-rockchip/rk3399/lowlevel_init.S
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2016
++ * Cédric Schieli <cschieli@gmail.com>
++ */
++
++#include <config.h>
++
++/*
++ * Routine: save_boot_params (called after reset from start.S)
++ * Description: save ATAG/FDT address provided by the firmware at boot time
++ */
++
++.global save_boot_params
++save_boot_params:
++
++	/* The firmware provided ATAG/FDT address can be found in r2/x0 */
++#ifdef CONFIG_ARM64
++	adr	x8, fw_dtb_pointer
++	str	x0, [x8]
++#else
++	ldr	r8, =fw_dtb_pointer
++	str	r2, [r8]
++#endif
++
++	/* Returns */
++	b	save_boot_params_ret
+diff --git a/arch/arm/mach-rockchip/rk3399/rk3399.c b/arch/arm/mach-rockchip/rk3399/rk3399.c
+index d40969c888..2a48b5fc25 100644
+--- a/arch/arm/mach-rockchip/rk3399/rk3399.c
++++ b/arch/arm/mach-rockchip/rk3399/rk3399.c
+@@ -12,6 +12,7 @@
+ #include <syscon.h>
+ #include <asm/armv8/mmu.h>
+ #include <asm/global_data.h>
++#include <asm/sections.h>
+ #include <asm/io.h>
+ #include <asm/arch-rockchip/bootrom.h>
+ #include <asm/arch-rockchip/clock.h>
+@@ -23,6 +24,49 @@
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++/* Assigned in lowlevel_init.S
++ * Push the variable into the .data section so that it
++ * does not get cleared later.
++ */
++unsigned long __section(".data") fw_dtb_pointer;
++
++#define DEBUG 1
++#undef CONFIG_LOGLEVEL
++#define CONFIG_LOGLEVEL 8
++/*
++ * If the firmware passed a device tree use it for U-Boot.
++ */
++void *board_fdt_blob_setup(int *err)
++{
++	void *fdt_blob = NULL;
++	*err = 0;
++
++	debug("rk3399 fdt_blob_setup\n");
++	if (IS_ENABLED(CONFIG_SPL_BUILD)) {
++		/* FDT is at end of BSS unless it is in a different memory region */
++		if (IS_ENABLED(CONFIG_SPL_SEPARATE_BSS))
++	  		fdt_blob = (ulong *)&_image_binary_end;
++		else
++	  		fdt_blob = (ulong *)&__bss_end;
++
++		debug("board_fdt_blob_setup fdt_blob=%p", fdt_blob);
++		return fdt_blob;
++	} else if (IS_ENABLED(CONFIG_SPL_BUILD)) {
++		fdt_blob = (ulong *)&_end;
++		return fdt_blob;
++	}
++
++	debug("u-boot prop fw_dtb_pointer=%p", (void *)fw_dtb_pointer);
++
++	if (fdt_magic(fw_dtb_pointer) != FDT_MAGIC) {
++		debug("fdt_magic not found PAG");
++		*err = -ENXIO;
++		return NULL;
++	}
++	debug("board_fdt_blob_setup fw_dtb_pointer=%p", (void *)fw_dtb_pointer);
++	return (void *)fw_dtb_pointer;
++}
++
+ #define GRF_EMMCCORE_CON11 0xff77f02c
+ #define GRF_BASE	0xff770000
+ 
+@@ -111,6 +155,7 @@ int arch_cpu_init(void)
+ 	return 0;
+ }
+ 
++
+ #ifdef CONFIG_DEBUG_UART_BOARD_INIT
+ void board_debug_uart_init(void)
+ {
+-- 
+2.25.1
+
