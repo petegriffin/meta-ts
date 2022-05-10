@@ -1,0 +1,123 @@
+From 6d956c9acb19fa5c148e32083ea4cc5e7ffeff3a Mon Sep 17 00:00:00 2001
+From: Peter Griffin <peter.griffin@linaro.org>
+Date: Mon, 9 May 2022 16:34:20 +0100
+Subject: [PATCH] RockPi4: Add UEFI capsule update support
+
+Add support for updating the idbloader and u-boot images through the
+UEFI capsule update functionality. Enable the modules required for
+supporting the functionality.
+
+Signed-off-by: Sughosh Ganu <sughosh.ganu@linaro.org>
+Signed-off-by: Peter Griffin <peter.griffin@linaro.org>
+---
+ board/rockchip/evb_rk3399/evb-rk3399.c | 55 ++++++++++++++++++++++++++
+ include/configs/rk3399_common.h        | 17 ++++++++
+ 2 files changed, 72 insertions(+)
+
+diff --git a/board/rockchip/evb_rk3399/evb-rk3399.c b/board/rockchip/evb_rk3399/evb-rk3399.c
+index abb76585cf..cb55b092ef 100644
+--- a/board/rockchip/evb_rk3399/evb-rk3399.c
++++ b/board/rockchip/evb_rk3399/evb-rk3399.c
+@@ -5,11 +5,24 @@
+ 
+ #include <common.h>
+ #include <dm.h>
++#include <efi_loader.h>
+ #include <init.h>
+ #include <log.h>
+ #include <asm/arch-rockchip/periph.h>
+ #include <power/regulator.h>
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[2];
++
++struct efi_capsule_update_info update_info = {
++       .dfu_string = "mmc 1=idbloader.img part 1 1;"
++                       "u-boot.itb part 1 4",
++       .images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif
++
+ #ifndef CONFIG_SPL_BUILD
+ int board_early_init_f(void)
+ {
+@@ -29,4 +42,46 @@ int board_early_init_f(void)
+ out:
+ 	return 0;
+ }
++
++static bool board_is_rockpi_4b(void)
++{
++       return CONFIG_IS_ENABLED(TARGET_EVB_RK3399) &&
++               of_machine_is_compatible("radxa,rockpi4b");
++}
++
++static bool board_is_rockpi_4c(void)
++{
++       return CONFIG_IS_ENABLED(TARGET_EVB_RK3399) &&
++               of_machine_is_compatible("radxa,rockpi4c");
++}
++
++#if defined(CONFIG_EFI_HAVE_CAPSULE_SUPPORT)
++int rk_board_late_init(void)
++{
++       if (board_is_rockpi_4b()) {
++               efi_guid_t idbldr_image_type_guid = ROCKPI_4B_IDBLOADER_IMAGE_GUID;
++               efi_guid_t uboot_image_type_guid = ROCKPI_4B_UBOOT_IMAGE_GUID;
++
++               guidcpy(&fw_images[0].image_type_id, &idbldr_image_type_guid);
++               guidcpy(&fw_images[1].image_type_id, &uboot_image_type_guid);
++
++               fw_images[0].fw_name = u"ROCKPI4B-IDBLOADER";
++               fw_images[1].fw_name = u"ROCKPI4B-UBOOT";
++       } else if (board_is_rockpi_4c()) {
++               efi_guid_t idbldr_image_type_guid = ROCKPI_4C_IDBLOADER_IMAGE_GUID;
++               efi_guid_t uboot_image_type_guid = ROCKPI_4C_UBOOT_IMAGE_GUID;
++
++               guidcpy(&fw_images[0].image_type_id, &idbldr_image_type_guid);
++               guidcpy(&fw_images[1].image_type_id, &uboot_image_type_guid);
++
++               fw_images[0].fw_name = u"ROCKPI4C-IDBLOADER";
++               fw_images[1].fw_name = u"ROCKPI4C-UBOOT";
++       }
++
++       fw_images[0].image_index = 0x1;
++       fw_images[1].image_index = 0x2;
++
++       return 0;
++}
++#endif
+ #endif
+diff --git a/include/configs/rk3399_common.h b/include/configs/rk3399_common.h
+index 8e13737666..ecbe480ccf 100644
+--- a/include/configs/rk3399_common.h
++++ b/include/configs/rk3399_common.h
+@@ -38,6 +38,23 @@
+ #define CONFIG_SYS_SDRAM_BASE		0
+ #define SDRAM_MAX_SIZE			0xf8000000
+ 
++
++#define ROCKPI_4B_IDBLOADER_IMAGE_GUID \
++       EFI_GUID(0x02f4d760, 0xcfd5, 0x43bd, 0x8e, 0x2d, \
++                0xa4, 0x2a, 0xcb, 0x33, 0xc6, 0x60)
++
++#define ROCKPI_4B_UBOOT_IMAGE_GUID \
++       EFI_GUID(0x4ce292da, 0x1dd8, 0x428d, 0xa1, 0xc2, \
++                0x77, 0x74, 0x3e, 0xf8, 0xb9, 0x6e)
++
++#define ROCKPI_4C_IDBLOADER_IMAGE_GUID \
++       EFI_GUID(0xfd68510c, 0x12d3, 0x4f0a, 0xb8, 0xd3, \
++                0xd8, 0x79, 0xe1, 0xd3, 0xa5, 0x40)
++
++#define ROCKPI_4C_UBOOT_IMAGE_GUID \
++       EFI_GUID(0xb81fb4ae, 0xe4f3, 0x471b, 0x99, 0xb4, \
++                0x0b, 0x3d, 0xa5, 0x49, 0xce, 0x13)
++
+ #ifndef CONFIG_SPL_BUILD
+ 
+ #define ENV_MEM_LAYOUT_SETTINGS \
+-- 
+2.25.1
+

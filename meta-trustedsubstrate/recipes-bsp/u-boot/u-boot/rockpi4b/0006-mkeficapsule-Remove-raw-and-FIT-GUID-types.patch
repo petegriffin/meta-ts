@@ -1,0 +1,122 @@
+From 2eda55e4c968238cf395433de0299d5fa7624d68 Mon Sep 17 00:00:00 2001
+From: Sughosh Ganu <sughosh.ganu@linaro.org>
+Date: Fri, 15 Apr 2022 11:29:40 +0530
+Subject: [PATCH 6/7] mkeficapsule: Remove raw and FIT GUID types
+
+While building a capsule, the GUID value of that specific image is to
+be passed through the --guid command option to the mkeficapsule
+tool instead of using one of --raw or --fit options, where the GUID
+value passed through the command line option is the image GUID.
+
+This renders the EFI_FIRMWARE_IMAGE_TYPE_UBOOT_FIT_GUID and
+EFI_FIRMWARE_IMAGE_TYPE_UBOOT_RAW_GUID values superfluous. Remove the
+--raw and --fit command line options as well. Also modify the
+mkeficapsule man page to reflect this change.
+
+Signed-off-by: Sughosh Ganu <sughosh.ganu@linaro.org>
+---
+ doc/mkeficapsule.1   | 12 ------------
+ tools/eficapsule.h   |  8 --------
+ tools/mkeficapsule.c | 26 +-------------------------
+ 3 files changed, 1 insertion(+), 45 deletions(-)
+
+diff --git a/doc/mkeficapsule.1 b/doc/mkeficapsule.1
+index 8babb27ee8..09bdc24295 100644
+--- a/doc/mkeficapsule.1
++++ b/doc/mkeficapsule.1
+@@ -41,18 +41,6 @@ If you want to use other types than above two, you should explicitly
+ specify a guid for the FMP driver.
+ 
+ .SH "OPTIONS"
+-One of
+-.BR --fit ", " --raw " or " --guid
+-option must be specified.
+-
+-.TP
+-.BR -f ", " --fit
+-Indicate that the blob is a FIT image file
+-
+-.TP
+-.BR -r ", " --raw
+-Indicate that the blob is a raw image file
+-
+ .TP
+ .BI "-g\fR,\fB --guid " guid-string
+ Specify guid for image blob type. The format is:
+diff --git a/tools/eficapsule.h b/tools/eficapsule.h
+index 69c9c58c2f..d63b831443 100644
+--- a/tools/eficapsule.h
++++ b/tools/eficapsule.h
+@@ -37,14 +37,6 @@ typedef struct {
+ 	EFI_GUID(0x6dcbd5ed, 0xe82d, 0x4c44, 0xbd, 0xa1, \
+ 		 0x71, 0x94, 0x19, 0x9a, 0xd9, 0x2a)
+ 
+-#define EFI_FIRMWARE_IMAGE_TYPE_UBOOT_FIT_GUID \
+-	EFI_GUID(0xae13ff2d, 0x9ad4, 0x4e25, 0x9a, 0xc8, \
+-		 0x6d, 0x80, 0xb3, 0xb2, 0x21, 0x47)
+-
+-#define EFI_FIRMWARE_IMAGE_TYPE_UBOOT_RAW_GUID \
+-	EFI_GUID(0xe2bb9c06, 0x70e9, 0x4b14, 0x97, 0xa3, \
+-		 0x5a, 0x79, 0x13, 0x17, 0x6e, 0x3f)
+-
+ #define EFI_CERT_TYPE_PKCS7_GUID \
+ 	EFI_GUID(0x4aafd29d, 0x68df, 0x49ee, 0x8a, 0xa9, \
+ 		 0x34, 0x7d, 0x37, 0x56, 0x65, 0xa7)
+diff --git a/tools/mkeficapsule.c b/tools/mkeficapsule.c
+index c118335b93..5f74d23b9e 100644
+--- a/tools/mkeficapsule.c
++++ b/tools/mkeficapsule.c
+@@ -27,17 +27,11 @@
+ static const char *tool_name = "mkeficapsule";
+ 
+ efi_guid_t efi_guid_fm_capsule = EFI_FIRMWARE_MANAGEMENT_CAPSULE_ID_GUID;
+-efi_guid_t efi_guid_image_type_uboot_fit =
+-		EFI_FIRMWARE_IMAGE_TYPE_UBOOT_FIT_GUID;
+-efi_guid_t efi_guid_image_type_uboot_raw =
+-		EFI_FIRMWARE_IMAGE_TYPE_UBOOT_RAW_GUID;
+ efi_guid_t efi_guid_cert_type_pkcs7 = EFI_CERT_TYPE_PKCS7_GUID;
+ 
+-static const char *opts_short = "frg:i:I:v:p:c:m:dh";
++static const char *opts_short = "g:i:I:v:p:c:m:dh";
+ 
+ static struct option options[] = {
+-	{"fit", no_argument, NULL, 'f'},
+-	{"raw", no_argument, NULL, 'r'},
+ 	{"guid", required_argument, NULL, 'g'},
+ 	{"index", required_argument, NULL, 'i'},
+ 	{"instance", required_argument, NULL, 'I'},
+@@ -54,8 +48,6 @@ static void print_usage(void)
+ 	fprintf(stderr, "Usage: %s [options] <image blob> <output file>\n"
+ 		"Options:\n"
+ 
+-		"\t-f, --fit                   FIT image type\n"
+-		"\t-r, --raw                   raw image type\n"
+ 		"\t-g, --guid <guid string>    guid for image blob type\n"
+ 		"\t-i, --index <index>         update image index\n"
+ 		"\t-I, --instance <instance>   update hardware instance\n"
+@@ -606,22 +598,6 @@ int main(int argc, char **argv)
+ 			break;
+ 
+ 		switch (c) {
+-		case 'f':
+-			if (guid) {
+-				fprintf(stderr,
+-					"Image type already specified\n");
+-				exit(EXIT_FAILURE);
+-			}
+-			guid = &efi_guid_image_type_uboot_fit;
+-			break;
+-		case 'r':
+-			if (guid) {
+-				fprintf(stderr,
+-					"Image type already specified\n");
+-				exit(EXIT_FAILURE);
+-			}
+-			guid = &efi_guid_image_type_uboot_raw;
+-			break;
+ 		case 'g':
+ 			if (guid) {
+ 				fprintf(stderr,
+-- 
+2.25.1
+

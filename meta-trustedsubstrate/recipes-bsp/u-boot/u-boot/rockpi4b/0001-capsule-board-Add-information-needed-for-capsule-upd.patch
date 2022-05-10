@@ -1,0 +1,780 @@
+From 741ef867288bb294039e34ab2287ffe981b05b86 Mon Sep 17 00:00:00 2001
+From: Sughosh Ganu <sughosh.ganu@linaro.org>
+Date: Fri, 15 Apr 2022 11:29:34 +0530
+Subject: [PATCH] capsule: board: Add information needed for capsule updates
+
+Add a structure which defines the information that is needed for
+executing capsule updates on a platform. Some information in the
+structure like the dfu string is used for making the update process
+more robust while some information like the per platform image GUIDs
+is used for fixing issues. Initialise this structure in the board
+file, and use the information for the capsule updates.
+
+Signed-off-by: Sughosh Ganu <sughosh.ganu@linaro.org>
+---
+ .../imx8mp_rsb3720a1/imx8mp_rsb3720a1.c       | 29 +++++++++++++++
+ .../imx8mm-cl-iot-gate/imx8mm-cl-iot-gate.c   | 28 +++++++++++++++
+ board/emulation/common/qemu_dfu.c             |  3 +-
+ board/emulation/qemu-arm/qemu-arm.c           | 28 +++++++++++++++
+ board/kontron/pitx_imx8m/pitx_imx8m.c         | 21 ++++++++++-
+ board/kontron/sl-mx8mm/sl-mx8mm.c             | 20 +++++++++++
+ board/kontron/sl28/sl28.c                     | 21 +++++++++++
+ board/sandbox/sandbox.c                       | 34 ++++++++++++++++++
+ board/socionext/developerbox/developerbox.c   | 33 +++++++++++++++++
+ board/xilinx/common/board.c                   | 28 +++++++++++++++
+ board/xilinx/zynq/board.c                     |  3 +-
+ board/xilinx/zynqmp/zynqmp.c                  |  3 +-
+ include/configs/imx8mm-cl-iot-gate.h          |  9 +++++
+ include/configs/imx8mp_rsb3720.h              |  9 +++++
+ include/configs/kontron-sl-mx8mm.h            |  5 +++
+ include/configs/kontron_pitx_imx8m.h          |  5 +++
+ include/configs/kontron_sl28.h                |  5 +++
+ include/configs/qemu-arm.h                    |  9 +++++
+ include/configs/sandbox.h                     | 13 +++++++
+ include/configs/synquacer.h                   | 13 +++++++
+ include/configs/xilinx_versal.h               |  5 +++
+ include/configs/xilinx_zynqmp.h               |  9 +++++
+ include/configs/zynq-common.h                 |  9 +++++
+ include/efi_loader.h                          | 36 +++++++++++++++++++
+ 24 files changed, 374 insertions(+), 4 deletions(-)
+
+diff --git a/board/advantech/imx8mp_rsb3720a1/imx8mp_rsb3720a1.c b/board/advantech/imx8mp_rsb3720a1/imx8mp_rsb3720a1.c
+index 16566092bd..782025dc78 100644
+--- a/board/advantech/imx8mp_rsb3720a1/imx8mp_rsb3720a1.c
++++ b/board/advantech/imx8mp_rsb3720a1/imx8mp_rsb3720a1.c
+@@ -6,6 +6,8 @@
+ 
+ #include <common.h>
+ #include <dwc3-uboot.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <errno.h>
+ #include <miiphy.h>
+ #include <netdev.h>
+@@ -21,6 +23,7 @@
+ #include <asm/arch/clock.h>
+ #include <asm/mach-imx/dma.h>
+ #include <linux/delay.h>
++#include <linux/kernel.h>
+ #include <power/pmic.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+@@ -44,6 +47,32 @@ static void setup_gpmi_nand(void)
+ }
+ #endif
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++#if defined(CONFIG_TARGET_IMX8MP_RSB3720A1_4G)
++	{
++		.image_type_id = IMX8MP_RSB3720A1_4G_FIT_IMAGE_GUID,
++		.fw_name = u"IMX8MP-RSB3720-FIT",
++		.image_index = 1,
++	},
++#elif defined(CONFIG_TARGET_IMX8MP_RSB3720A1_6G)
++	{
++		.image_type_id = IMX8MP_RSB3720A1_6G_FIT_IMAGE_GUID,
++		.fw_name = u"IMX8MP-RSB3720-FIT",
++		.image_index = 1,
++	},
++#endif
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "mmc 2=flash-bin raw 0 0x1B00 mmcpart 1",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
++
+ int board_early_init_f(void)
+ {
+ 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
+diff --git a/board/compulab/imx8mm-cl-iot-gate/imx8mm-cl-iot-gate.c b/board/compulab/imx8mm-cl-iot-gate/imx8mm-cl-iot-gate.c
+index 27200f728e..e6021a4566 100644
+--- a/board/compulab/imx8mm-cl-iot-gate/imx8mm-cl-iot-gate.c
++++ b/board/compulab/imx8mm-cl-iot-gate/imx8mm-cl-iot-gate.c
+@@ -5,6 +5,8 @@
+  */
+ 
+ #include <common.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <env.h>
+ #include <extension_board.h>
+ #include <hang.h>
+@@ -23,11 +25,37 @@
+ #include <asm/mach-imx/gpio.h>
+ #include <asm/mach-imx/mxc_i2c.h>
+ #include <asm/sections.h>
++#include <linux/kernel.h>
+ 
+ #include "ddr/ddr.h"
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++#if defined(CONFIG_TARGET_IMX8MM_CL_IOT_GATE)
++	{
++		.image_type_id = IMX8MM_CL_IOT_GATE_FIT_IMAGE_GUID,
++		.fw_name = u"IMX8MM-CL-IOT-GATE-FIT",
++		.image_index = 1,
++	},
++#elif defined(CONFIG_TARGET_IMX8MM_CL_IOT_GATE_OPTEE)
++	{
++		.image_type_id = IMX8MM_CL_IOT_GATE_OPTEE_FIT_IMAGE_GUID,
++		.fw_name = u"IMX8MM-CL-IOT-GATE-FIT",
++		.image_index = 1,
++	},
++#endif
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "mmc 2=flash-bin raw 0x42 0x1D00 mmcpart 1",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ int board_phys_sdram_size(phys_size_t *size)
+ {
+ 	struct lpddr4_tcm_desc *lpddr4_tcm_desc =
+diff --git a/board/emulation/common/qemu_dfu.c b/board/emulation/common/qemu_dfu.c
+index 62234a7647..c1aeaf10d9 100644
+--- a/board/emulation/common/qemu_dfu.c
++++ b/board/emulation/common/qemu_dfu.c
+@@ -44,7 +44,8 @@ void set_dfu_alt_info(char *interface, char *devstr)
+ 
+ 	ALLOC_CACHE_ALIGN_BUFFER(char, buf, DFU_ALT_BUF_LEN);
+ 
+-	if (env_get("dfu_alt_info"))
++	if (!CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT) &&
++	    env_get("dfu_alt_info"))
+ 		return;
+ 
+ 	memset(buf, 0, sizeof(buf));
+diff --git a/board/emulation/qemu-arm/qemu-arm.c b/board/emulation/qemu-arm/qemu-arm.c
+index c9e886e44a..16237e29e4 100644
+--- a/board/emulation/qemu-arm/qemu-arm.c
++++ b/board/emulation/qemu-arm/qemu-arm.c
+@@ -6,15 +6,43 @@
+ #include <common.h>
+ #include <cpu_func.h>
+ #include <dm.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <fdtdec.h>
+ #include <init.h>
+ #include <log.h>
+ #include <virtio_types.h>
+ #include <virtio.h>
+ 
++#include <linux/kernel.h>
++
+ #ifdef CONFIG_ARM64
+ #include <asm/armv8/mmu.h>
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++#if defined(CONFIG_TARGET_QEMU_ARM_32BIT)
++	{
++		.image_type_id = QEMU_ARM_UBOOT_IMAGE_GUID,
++		.fw_name = u"Qemu-Arm-UBOOT",
++		.image_index = 1,
++	},
++#elif defined(CONFIG_TARGET_QEMU_ARM_64BIT)
++	{
++		.image_type_id = QEMU_ARM64_UBOOT_IMAGE_GUID,
++		.fw_name = u"Qemu-Arm-UBOOT",
++		.image_index = 1,
++	},
++#endif
++};
++
++struct efi_capsule_update_info update_info = {
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ static struct mm_region qemu_arm64_mem_map[] = {
+ 	{
+ 		/* Flash */
+diff --git a/board/kontron/pitx_imx8m/pitx_imx8m.c b/board/kontron/pitx_imx8m/pitx_imx8m.c
+index d655fe099b..d974af8da1 100644
+--- a/board/kontron/pitx_imx8m/pitx_imx8m.c
++++ b/board/kontron/pitx_imx8m/pitx_imx8m.c
+@@ -2,6 +2,8 @@
+ 
+ #include "pitx_misc.h"
+ #include <common.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <init.h>
+ #include <mmc.h>
+ #include <miiphy.h>
+@@ -12,7 +14,7 @@
+ #include <asm/mach-imx/gpio.h>
+ #include <asm/mach-imx/iomux-v3.h>
+ #include <linux/delay.h>
+-
++#include <linux/kernel.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -30,6 +32,23 @@ static iomux_v3_cfg_t const uart_pads[] = {
+ 	IMX8MQ_PAD_ECSPI1_MISO__UART3_CTS_B | MUX_PAD_CTRL(UART_PAD_CTRL),
+ };
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++	{
++		.image_type_id = KONTRON_PITX_IMX8M_FIT_IMAGE_GUID,
++		.fw_name = u"KONTRON-PITX-IMX8M-UBOOT",
++		.image_index = 1,
++	},
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "mmc 0=flash-bin raw 0x42 0x1000 mmcpart 1",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ int board_early_init_f(void)
+ {
+ 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
+diff --git a/board/kontron/sl-mx8mm/sl-mx8mm.c b/board/kontron/sl-mx8mm/sl-mx8mm.c
+index 48376cb826..fea9327837 100644
+--- a/board/kontron/sl-mx8mm/sl-mx8mm.c
++++ b/board/kontron/sl-mx8mm/sl-mx8mm.c
+@@ -6,12 +6,32 @@
+ #include <asm/arch/imx-regs.h>
+ #include <asm/global_data.h>
+ #include <asm/io.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <fdt_support.h>
+ #include <linux/errno.h>
++#include <linux/kernel.h>
+ #include <net.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++	{
++		.image_type_id = KONTRON_SL_MX8MM_FIT_IMAGE_GUID,
++		.fw_name = u"KONTROL-SL-MX8MM-UBOOT",
++		.image_index = 1,
++	},
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "sf 0:0=flash-bin raw 0x400 0x1f0000",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ int board_phys_sdram_size(phys_size_t *size)
+ {
+ 	u32 ddr_size = readl(M4_BOOTROM_BASE_ADDR);
+diff --git a/board/kontron/sl28/sl28.c b/board/kontron/sl28/sl28.c
+index 17bb457736..32e9694b77 100644
+--- a/board/kontron/sl28/sl28.c
++++ b/board/kontron/sl28/sl28.c
+@@ -3,11 +3,14 @@
+ #include <common.h>
+ #include <dm.h>
+ #include <malloc.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <errno.h>
+ #include <fsl_ddr.h>
+ #include <fdt_support.h>
+ #include <asm/global_data.h>
+ #include <linux/libfdt.h>
++#include <linux/kernel.h>
+ #include <env_internal.h>
+ #include <asm/arch-fsl-layerscape/soc.h>
+ #include <asm/arch-fsl-layerscape/fsl_icid.h>
+@@ -23,6 +26,24 @@
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++	{
++		.image_type_id = KONTRON_SL28_FIT_IMAGE_GUID,
++		.fw_name = u"KONTRON-SL28-FIT",
++		.image_index = 1,
++	},
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "sf 0:0=u-boot-bin raw 0x210000 0x1d0000;"
++			"u-boot-env raw 0x3e0000 0x20000",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ int board_early_init_f(void)
+ {
+ 	fsl_lsch3_early_init_f();
+diff --git a/board/sandbox/sandbox.c b/board/sandbox/sandbox.c
+index 5d9a945d64..28ad6efd13 100644
+--- a/board/sandbox/sandbox.c
++++ b/board/sandbox/sandbox.c
+@@ -7,6 +7,8 @@
+ #include <cpu_func.h>
+ #include <cros_ec.h>
+ #include <dm.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <env_internal.h>
+ #include <init.h>
+ #include <led.h>
+@@ -14,6 +16,7 @@
+ #include <asm/global_data.h>
+ #include <asm/test.h>
+ #include <asm/u-boot-sandbox.h>
++#include <linux/kernel.h>
+ #include <malloc.h>
+ 
+ #include <extension_board.h>
+@@ -25,6 +28,37 @@
+  */
+ gd_t *gd;
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++#if defined(CONFIG_EFI_CAPSULE_FIRMWARE_RAW)
++	{
++		.image_type_id = SANDBOX_UBOOT_IMAGE_GUID,
++		.fw_name = u"SANDBOX-UBOOT",
++		.image_index = 1,
++	},
++	{
++		.image_type_id = SANDBOX_UBOOT_ENV_IMAGE_GUID,
++		.fw_name = u"SANDBOX-UBOOT-ENV",
++		.image_index = 2,
++	},
++#elif defined(CONFIG_EFI_CAPSULE_FIRMWARE_FIT)
++	{
++		.image_type_id = SANDBOX_FIT_IMAGE_GUID,
++		.fw_name = u"SANDBOX-FIT",
++		.image_index = 1,
++	},
++#endif
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "sf 0:0=u-boot-bin raw 0x100000 0x50000;"
++		"u-boot-env raw 0x150000 0x200000",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ #if !CONFIG_IS_ENABLED(OF_PLATDATA)
+ /*
+  * Add a simple GPIO device (don't use with of-platdata as it interferes with
+diff --git a/board/socionext/developerbox/developerbox.c b/board/socionext/developerbox/developerbox.c
+index 9552bfcdc3..f5a5fe0121 100644
+--- a/board/socionext/developerbox/developerbox.c
++++ b/board/socionext/developerbox/developerbox.c
+@@ -10,10 +10,43 @@
+ #include <asm/global_data.h>
+ #include <asm/io.h>
+ #include <common.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <env_internal.h>
+ #include <fdt_support.h>
+ #include <log.h>
+ 
++#include <linux/kernel.h>
++
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++	{
++		.image_type_id = DEVELOPERBOX_UBOOT_IMAGE_GUID,
++		.fw_name = u"DEVELOPERBOX-UBOOT",
++		.image_index = 1,
++	},
++	{
++		.image_type_id = DEVELOPERBOX_FIP_IMAGE_GUID,
++		.fw_name = u"DEVELOPERBOX-FIP",
++		.image_index = 2,
++	},
++	{
++		.image_type_id = DEVELOPERBOX_OPTEE_IMAGE_GUID,
++		.fw_name = u"DEVELOPERBOX-OPTEE",
++		.image_index = 3,
++	},
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "mtd nor1=u-boot.bin raw 200000 100000;"
++			"fip.bin raw 180000 78000;"
++			"optee.bin raw 500000 100000",
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ static struct mm_region sc2a11_mem_map[] = {
+ 	{
+ 		.virt = 0x0UL,
+diff --git a/board/xilinx/common/board.c b/board/xilinx/common/board.c
+index 0769189dcf..5be3090c31 100644
+--- a/board/xilinx/common/board.c
++++ b/board/xilinx/common/board.c
+@@ -5,6 +5,8 @@
+  */
+ 
+ #include <common.h>
++#include <efi.h>
++#include <efi_loader.h>
+ #include <env.h>
+ #include <log.h>
+ #include <asm/global_data.h>
+@@ -20,9 +22,35 @@
+ #include <generated/dt.h>
+ #include <soc.h>
+ #include <linux/ctype.h>
++#include <linux/kernel.h>
+ 
+ #include "fru.h"
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++#if defined(XILINX_BOOT_IMAGE_GUID)
++	{
++		.image_type_id = XILINX_BOOT_IMAGE_GUID,
++		.fw_name = u"XILINX-BOOT",
++		.image_index = 1,
++	},
++#endif
++#if defined(XILINX_UBOOT_IMAGE_GUID)
++	{
++		.image_type_id = XILINX_UBOOT_IMAGE_GUID,
++		.fw_name = u"XILINX-UBOOT",
++		.image_index = 2,
++	},
++#endif
++};
++
++struct efi_capsule_update_info update_info = {
++	.images = fw_images,
++};
++
++u8 num_image_type_guids = ARRAY_SIZE(fw_images);
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ #if defined(CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET)
+ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+ {
+diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
+index 26ef048835..63aff0474b 100644
+--- a/board/xilinx/zynq/board.c
++++ b/board/xilinx/zynq/board.c
+@@ -168,7 +168,8 @@ void set_dfu_alt_info(char *interface, char *devstr)
+ {
+ 	ALLOC_CACHE_ALIGN_BUFFER(char, buf, DFU_ALT_BUF_LEN);
+ 
+-	if (env_get("dfu_alt_info"))
++	if (!CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT) &&
++	    env_get("dfu_alt_info"))
+ 		return;
+ 
+ 	memset(buf, 0, sizeof(buf));
+diff --git a/board/xilinx/zynqmp/zynqmp.c b/board/xilinx/zynqmp/zynqmp.c
+index e7e8e91d2c..41ecc9559c 100644
+--- a/board/xilinx/zynqmp/zynqmp.c
++++ b/board/xilinx/zynqmp/zynqmp.c
+@@ -889,7 +889,8 @@ void set_dfu_alt_info(char *interface, char *devstr)
+ 
+ 	ALLOC_CACHE_ALIGN_BUFFER(char, buf, DFU_ALT_BUF_LEN);
+ 
+-	if (env_get("dfu_alt_info"))
++	if (!CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT) &&
++	    env_get("dfu_alt_info"))
+ 		return;
+ 
+ 	memset(buf, 0, sizeof(buf));
+diff --git a/include/configs/imx8mm-cl-iot-gate.h b/include/configs/imx8mm-cl-iot-gate.h
+index 14d3f3cac6..b2cde03073 100644
+--- a/include/configs/imx8mm-cl-iot-gate.h
++++ b/include/configs/imx8mm-cl-iot-gate.h
+@@ -31,6 +31,15 @@
+ 
+ #endif
+ 
++/* GUIDs for capsule updatable firmware images */
++#define IMX8MM_CL_IOT_GATE_FIT_IMAGE_GUID \
++	EFI_GUID(0x7a32a939, 0xab92, 0x467b, 0x91, 0x52, \
++		 0x74, 0x77, 0x1b, 0x95, 0xe6, 0x46)
++
++#define IMX8MM_CL_IOT_GATE_OPTEE_FIT_IMAGE_GUID \
++	EFI_GUID(0x0bf1165c, 0x1831, 0x4864, 0x94, 0x5e, \
++		 0xac, 0x3d, 0x38, 0x48, 0xf4, 0x99)
++
+ #if CONFIG_IS_ENABLED(CMD_MMC)
+ # define BOOT_TARGET_MMC(func) \
+ 	func(MMC, mmc, 2)      \
+diff --git a/include/configs/imx8mp_rsb3720.h b/include/configs/imx8mp_rsb3720.h
+index 62e06d2303..2553f0dfb5 100644
+--- a/include/configs/imx8mp_rsb3720.h
++++ b/include/configs/imx8mp_rsb3720.h
+@@ -18,6 +18,15 @@
+ #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
+ #define CONFIG_SYS_UBOOT_BASE	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
+ 
++/* GUIDs for capsule updatable firmware images */
++#define IMX8MP_RSB3720A1_4G_FIT_IMAGE_GUID \
++	EFI_GUID(0xb1251e89, 0x384a, 0x4635, 0xa8, 0x06, \
++		 0x3a, 0xa0, 0xb0, 0xe9, 0xf9, 0x65)
++
++#define IMX8MP_RSB3720A1_6G_FIT_IMAGE_GUID \
++	EFI_GUID(0xb5fb6f08, 0xe142, 0x4db1, 0x97, 0xea, \
++		 0x5f, 0xd3, 0x6b, 0x9b, 0xe5, 0xb9)
++
+ #ifdef CONFIG_SPL_BUILD
+ #define CONFIG_SPL_STACK		0x960000
+ #define CONFIG_SPL_BSS_START_ADDR	0x0098FC00
+diff --git a/include/configs/kontron-sl-mx8mm.h b/include/configs/kontron-sl-mx8mm.h
+index 788ae77cd3..1b429f7dbe 100644
+--- a/include/configs/kontron-sl-mx8mm.h
++++ b/include/configs/kontron-sl-mx8mm.h
+@@ -38,6 +38,11 @@
+ #define CONFIG_USB_MAX_CONTROLLER_COUNT	2
+ #endif
+ 
++/* GUID for capsule updatable firmware image */
++#define KONTRON_SL_MX8MM_FIT_IMAGE_GUID \
++	EFI_GUID(0xd488e45a, 0x4929, 0x4b55, 0x8c, 0x14, \
++		 0x86, 0xce, 0xa2, 0xcd, 0x66, 0x29)
++
+ #ifndef CONFIG_SPL_BUILD
+ #define BOOT_TARGET_DEVICES(func) \
+ 	func(MMC, mmc, 1) \
+diff --git a/include/configs/kontron_pitx_imx8m.h b/include/configs/kontron_pitx_imx8m.h
+index f96240cb95..e8e92920dc 100644
+--- a/include/configs/kontron_pitx_imx8m.h
++++ b/include/configs/kontron_pitx_imx8m.h
+@@ -12,6 +12,11 @@
+ #define CONFIG_SPL_MAX_SIZE		(124 * SZ_1K)
+ #define CONFIG_SYS_MONITOR_LEN		(512 * SZ_1K)
+ 
++/* GUID for capsule updatable firmware image */
++#define KONTRON_PITX_IMX8M_FIT_IMAGE_GUID \
++	EFI_GUID(0xc898e959, 0x5b1f, 0x4e6d, 0x88, 0xe0, \
++		 0x40, 0xd4, 0x5c, 0xca, 0x13, 0x99)
++
+ #ifdef CONFIG_SPL_BUILD
+ #define CONFIG_SPL_STACK		0x187FF0
+ #define CONFIG_SPL_BSS_START_ADDR       0x00180000
+diff --git a/include/configs/kontron_sl28.h b/include/configs/kontron_sl28.h
+index 97286b6180..c3ab049535 100644
+--- a/include/configs/kontron_sl28.h
++++ b/include/configs/kontron_sl28.h
+@@ -52,6 +52,11 @@
+ #define CONFIG_SYS_SPL_MALLOC_START	0x80200000
+ #define CONFIG_SYS_MONITOR_LEN		(1024 * 1024)
+ 
++/* GUID for capsule updatable firmware image */
++#define KONTRON_SL28_FIT_IMAGE_GUID \
++	EFI_GUID(0x86ebd44f, 0xfeb8, 0x466f, 0x8b, 0xb8, \
++		 0x89, 0x06, 0x18, 0x45, 0x6d, 0x8b)
++
+ /* environment */
+ /* see include/configs/ti_armv7_common.h */
+ #define ENV_MEM_LAYOUT_SETTINGS \
+diff --git a/include/configs/qemu-arm.h b/include/configs/qemu-arm.h
+index 3ad1cf3232..550e26f3f1 100644
+--- a/include/configs/qemu-arm.h
++++ b/include/configs/qemu-arm.h
+@@ -17,6 +17,15 @@
+ 
+ #define CONFIG_SYS_BOOTM_LEN		SZ_64M
+ 
++/* GUIDs for capsule updatable firmware images */
++#define QEMU_ARM_UBOOT_IMAGE_GUID \
++	EFI_GUID(0xf885b085, 0x99f8, 0x45af, 0x84, 0x7d, \
++		 0xd5, 0x14, 0x10, 0x7a, 0x4a, 0x2c)
++
++#define QEMU_ARM64_UBOOT_IMAGE_GUID \
++	EFI_GUID(0x058b7d83, 0x50d5, 0x4c47, 0xa1, 0x95, \
++		 0x60, 0xd8, 0x6a, 0xd3, 0x41, 0xc4)
++
+ /* For timer, QEMU emulates an ARMv7/ARMv8 architected timer */
+ 
+ /* Environment options */
+diff --git a/include/configs/sandbox.h b/include/configs/sandbox.h
+index 71b47996da..7b6db46ee1 100644
+--- a/include/configs/sandbox.h
++++ b/include/configs/sandbox.h
+@@ -14,6 +14,19 @@
+ 
+ #define CONFIG_SYS_CBSIZE		1024	/* Console I/O Buffer Size */
+ 
++/* GUIDs for capsule updatable firmware images */
++#define SANDBOX_UBOOT_IMAGE_GUID \
++	EFI_GUID(0x09d7cf52, 0x0720, 0x4710, 0x91, 0xd1, \
++		 0x08, 0x46, 0x9b, 0x7f, 0xe9, 0xc8)
++
++#define SANDBOX_UBOOT_ENV_IMAGE_GUID \
++	EFI_GUID(0x5a7021f5, 0xfef2, 0x48b4, 0xaa, 0xba, \
++		 0x83, 0x2e, 0x77, 0x74, 0x18, 0xc0)
++
++#define SANDBOX_FIT_IMAGE_GUID \
++	EFI_GUID(0x3673b45d, 0x6a7c, 0x46f3, 0x9e, 0x60, \
++		 0xad, 0xab, 0xb0, 0x3f, 0x79, 0x37)
++
+ /* Size of our emulated memory */
+ #define SB_CONCAT(x, y) x ## y
+ #define SB_TO_UL(s) SB_CONCAT(s, UL)
+diff --git a/include/configs/synquacer.h b/include/configs/synquacer.h
+index 8dd092fc59..5686a5b910 100644
+--- a/include/configs/synquacer.h
++++ b/include/configs/synquacer.h
+@@ -51,6 +51,19 @@
+ 			"fip.bin raw 180000 78000;"			\
+ 			"optee.bin raw 500000 100000\0"
+ 
++/* GUIDs for capsule updatable firmware images */
++#define DEVELOPERBOX_UBOOT_IMAGE_GUID \
++	EFI_GUID(0x53a92e83, 0x4ef4, 0x473a, 0x8b, 0x0d, \
++		 0xb5, 0xd8, 0xc7, 0xb2, 0xd6, 0x00)
++
++#define DEVELOPERBOX_FIP_IMAGE_GUID \
++	EFI_GUID(0x880866e9, 0x84ba, 0x4793, 0xa9, 0x08, \
++		 0x33, 0xe0, 0xb9, 0x16, 0xf3, 0x98)
++
++#define DEVELOPERBOX_OPTEE_IMAGE_GUID \
++	EFI_GUID(0xc1b629f1, 0xce0e, 0x4894, 0x82, 0xbf, \
++		 0xf0, 0xa3, 0x83, 0x87, 0xe6, 0x30)
++
+ /* Distro boot settings */
+ #ifndef CONFIG_SPL_BUILD
+ #ifdef CONFIG_CMD_USB
+diff --git a/include/configs/xilinx_versal.h b/include/configs/xilinx_versal.h
+index 80e94113f0..b025d2638d 100644
+--- a/include/configs/xilinx_versal.h
++++ b/include/configs/xilinx_versal.h
+@@ -25,6 +25,11 @@
+ #define CONFIG_SYS_BAUDRATE_TABLE \
+ 	{ 4800, 9600, 19200, 38400, 57600, 115200 }
+ 
++/* GUID for capsule updatable firmware image */
++#define XILINX_BOOT_IMAGE_GUID \
++	EFI_GUID(0x20c5fba5, 0x0171, 0x457f, 0xb9, 0xcd, \
++		 0xf5, 0x12, 0x9c, 0xd0, 0x72, 0x28)
++
+ /* Miscellaneous configurable options */
+ 
+ /* Monitor Command Prompt */
+diff --git a/include/configs/xilinx_zynqmp.h b/include/configs/xilinx_zynqmp.h
+index 1985a09325..e5e700d804 100644
+--- a/include/configs/xilinx_zynqmp.h
++++ b/include/configs/xilinx_zynqmp.h
+@@ -25,6 +25,15 @@
+ #define CONFIG_SYS_BAUDRATE_TABLE \
+ 	{ 4800, 9600, 19200, 38400, 57600, 115200 }
+ 
++/* GUIDs for capsule updatable firmware images */
++#define XILINX_BOOT_IMAGE_GUID \
++	EFI_GUID(0xde6066e8, 0x0256, 0x4fad, 0x82, 0x38, \
++		 0xe4, 0x06, 0xe2, 0x74, 0xc4, 0xcf)
++
++#define XILINX_UBOOT_IMAGE_GUID \
++	EFI_GUID(0xcf9ecfd4, 0x938b, 0x41c5, 0x85, 0x51, \
++		 0x1f, 0x88, 0x3a, 0xb7, 0xdc, 0x18)
++
+ #ifdef CONFIG_NAND_ARASAN
+ # define CONFIG_SYS_MAX_NAND_DEVICE	1
+ #endif
+diff --git a/include/configs/zynq-common.h b/include/configs/zynq-common.h
+index c92f796f8d..bd88b59f24 100644
+--- a/include/configs/zynq-common.h
++++ b/include/configs/zynq-common.h
+@@ -20,6 +20,15 @@
+ #define CONFIG_SYS_TIMER_COUNTS_DOWN
+ #define CONFIG_SYS_TIMER_COUNTER	(CONFIG_SYS_TIMERBASE + 0x4)
+ 
++/* GUIDs for capsule updatable firmware images */
++#define XILINX_BOOT_IMAGE_GUID \
++	EFI_GUID(0x1ba29a15, 0x9969, 0x40aa, 0xb4, 0x24, \
++		 0xe8, 0x61, 0x21, 0x61, 0x86, 0x64)
++
++#define XILINX_UBOOT_IMAGE_GUID \
++	EFI_GUID(0x1a5178f0, 0x87d3, 0x4f36, 0xac, 0x63, \
++		 0x3b, 0x31, 0xa2, 0x3b, 0xe3, 0x05)
++
+ /* Serial drivers */
+ /* The following table includes the supported baudrates */
+ #define CONFIG_SYS_BAUDRATE_TABLE  \
+diff --git a/include/efi_loader.h b/include/efi_loader.h
+index af36639ec6..c52ea59ec7 100644
+--- a/include/efi_loader.h
++++ b/include/efi_loader.h
+@@ -979,6 +979,42 @@ efi_status_t efi_capsule_authenticate(const void *capsule,
+ 
+ #define EFI_CAPSULE_DIR u"\\EFI\\UpdateCapsule\\"
+ 
++/**
++ * struct efi_fw_image -  Information on firmware images updatable through
++ *                        capsule update
++ *
++ * This structure gives information about the firmware images on the platform
++ * which can be updated through the capsule update mechanism
++ *
++ * @image_type_id:	Image GUID. Same value is to be used in the capsule
++ * @fw_name:		Name of the firmware image
++ * @image_index:	Image Index, same as value passed to SetImage FMP
++ *                      function
++ */
++struct efi_fw_image {
++	efi_guid_t image_type_id;
++	u16 *fw_name;
++	u8 image_index;
++};
++
++/**
++ * struct efi_capsule_update_info - Information needed for capsule updates
++ *
++ * This structure provides information needed for performing firmware
++ * updates. The structure needs to be initialised per platform, for all
++ * platforms which enable capsule updates
++ *
++ * @dfu_string:		String used to populate dfu_alt_info
++ * @images:		Pointer to an array of updatable images
++ */
++struct efi_capsule_update_info {
++	const char *dfu_string;
++	struct efi_fw_image *images;
++};
++
++extern struct efi_capsule_update_info update_info;
++extern u8 num_image_type_guids;
++
+ /**
+  * Install the ESRT system table.
+  *
+-- 
+2.25.1
+
