@@ -6,12 +6,12 @@ Build
 
 To build trusted substrate firmware for rockpi4b issue the following commands.
 
-`
+```
 $ pip install kas
 $ git clone https://git.codelinaro.org/linaro/dependable-boot/meta-ts.git
 $ cd meta-ts
 $ kas build ci/rockpi4b.yml
-`
+```
 
 Upon a sucessful build a wic image that can be flashed to the SD card can be
 found at meta-ts/build/tmp/deploy/images/rockpi4b/ts-firmware-rockpi4b.wic.gz
@@ -41,10 +41,10 @@ in the U-boot command line.
 
 4. Add kernel board specific kernel parameters and EFI boot order.
 
-`
+```
 efidebug boot add -b 1 BootLedge usb 0:1 efi/boot/bootaa64.efi -i usb 0:1 ledge-initramfs.rootfs.cpio.gz -s 'console=ttyS2,1500000 console=tty0 root=UUID=6091b3a4-ce08-3020-93a6-f755a22ef03b rootwait panic=60'
 efidebug boot order 1
-`
+```
 
 5. Power cycle board it and it has to boot automatically now.
 NOTE: first boot with a fresh root fs is slow, please wait for a couple of
@@ -60,11 +60,11 @@ capsules issue the following commands:
 Generate capsules
 -----------------
 
-`
+```
 $ cd meta-ts/build/tmp/work/rockpi4b-poky-linux/u-boot/1_2022.01-r1.ledge/build/rockpi4b_defconfig
 $ ./tools/mkeficapsule -i 0x1 -g 02f4d760-cfd5-43bd-8e2d-a42acb33c660 idbloader.img idbloader.capsule
 $ ./tools/mkeficapsule -i 0x2 -g 4ce292da-1dd8-428d-a1c2-77743ef8b96e u-boot.itb u-boot.capsule
-`
+```
 
 Applying the capsules
 ---------------------
@@ -79,13 +79,13 @@ To force the capsule to be processed you can issue following command
 If processing the capsule is sucessful you should see something like the following
 in the log.
 
-`
+```
 #
 Applying capsule idbloader.capsule succeeded.
 #
 Applying capsule u-boot.capsule succeeded.
 Reboot after firmware updateresetting ...
-`
+```
 
 More information about capsules and uefi in U-Boot can be found
 https://u-boot.readthedocs.io/en/latest/develop/uefi/uefi.html
