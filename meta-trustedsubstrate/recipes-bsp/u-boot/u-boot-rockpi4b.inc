@@ -17,6 +17,7 @@ SRC_URI:append = " file://0005-FMP-Remove-GUIDs-for-FIT-and-raw-images.patch"
 SRC_URI:append = " file://0006-mkeficapsule-Remove-raw-and-FIT-GUID-types.patch"
 SRC_URI:append = " file://0007-doc-uefi-Update-the-capsule-update-related-documenta.patch"
 SRC_URI:append = " file://0001-capsule-board-Add-information-needed-for-capsule-upd.patch"
+SRC_URI:append = " file://0001-mach-rockchip-make_fit_atf.py-support-OP-TEE-tee.bin.patch"
 
 COMPATIBLE_MACHINE = "rockpi4b"
 
@@ -27,7 +28,7 @@ PARALLEL_MAKE = ""
 do_compile:prepend() {
 	export BL31="${RECIPE_SYSROOT}/firmware/bl31.elf"
 	ls -l ${BL31}
-	export TEE="${RECIPE_SYSROOT}/lib/firmware/tee.elf"
+	export TEE="${RECIPE_SYSROOT}/lib/firmware/tee.bin"
 	ls -l ${TEE}
 }
 

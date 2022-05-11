@@ -16,9 +16,6 @@ EXTRA_OEMAKE += " PLATFORM_FLAVOR=rk3399 ARCH=arm"
 # Uncoment to enable verbose logs
 #EXTRA_OEMAKE += " CFG_TEE_CORE_LOG_LEVEL=4 CFG_EARLY_CONSOLE=1"
 
-# Buggy optee
-EXTRA_OEMAKE += " CFG_CORE_ASLR=n"
-
 # default disable latency benchmarks (over all OP-TEE layers)
 EXTRA_OEMAKE +=  " CFG_TEE_BENCHMARK=n"
 
