@@ -21,7 +21,7 @@ SRC_URI:append = " file://0001-mach-rockchip-make_fit_atf.py-support-OP-TEE-tee.
 
 COMPATIBLE_MACHINE = "rockpi4b"
 
-DEPENDS += "trusted-firmware-a"
+DEPENDS += "trusted-firmware-a gnutls-native"
 
 PARALLEL_MAKE = ""
 
