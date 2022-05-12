@@ -16,10 +16,8 @@
 #   root        262144          -           (suggested)
 
 bootloader --ptable gpt
-part loader1    --offset 32     --fixed-size 4000K --source rawcopy --sourceparams="file=${SPL_BINARY}"
+part loader1    --offset 32     --fixed-size 4000K --source rawcopy --part-type 02f4d760-cfd5-43bd-8e2d-a42acb33c660 --part-name=idbloader --sourceparams="file=${SPL_BINARY}"
 part reserved1  --offset 4032   --fixed-size 64K
 part reserved2  --offset 4096   --fixed-size 4096K
-part loader2    --offset 8192   --fixed-size 4096K --source rawcopy --sourceparams="file=u-boot.${UBOOT_SUFFIX}"
+part loader2    --offset 8192   --fixed-size 4096K --source rawcopy --part-type 4ce292da-1dd8-428d-a1c2-77743ef8b96e --part-name=uboot --sourceparams="file=u-boot.${UBOOT_SUFFIX}"
 part atf        --offset 12288  --fixed-size 4096K
-#part /boot      --offset 16384  --fstype=vfat --label boot --active --align 4 --sourceparams="loader=u-boot" --fixed-size 4M
-#part /boot-efi --fstype=vfat --label bootfs --active --align 4 --uuid 00000000-1234-1111-2222-000123456789 --use-label --part-name="ESP" --part-type 0xef00 --fixed-size 128M
