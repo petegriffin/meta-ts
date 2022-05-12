@@ -32,10 +32,20 @@ do_compile:prepend() {
 	ls -l ${TEE}
 }
 
+do_compile:append() {
+	${B}/rockpi4b_defconfig/tools/mkeficapsule -i 0x1 -g 02f4d760-cfd5-43bd-8e2d-a42acb33c660 \
+	${B}/rockpi4b_defconfig/idbloader.img ${B}/rockpi4b_defconfig/idbloader.capsule
+
+	${B}/rockpi4b_defconfig/tools/mkeficapsule -i 0x2 -g 4ce292da-1dd8-428d-a1c2-77743ef8b96e \
+	${B}/rockpi4b_defconfig/u-boot.itb ${B}/rockpi4b_defconfig/u-boot.capsule
+}
+
 do_deploy:append() {
 	mkdir -p ${DEPLOYDIR}
 	cp ${B}/rockpi4b_defconfig/idbloader.img  ${DEPLOYDIR}/idbloader.img
 	cp ${B}/rockpi4b_defconfig/u-boot.itb ${DEPLOYDIR}/u-boot.itb
+	cp ${B}/rockpi4b_defconfig/idbloader.capsule ${DEPLOYDIR}/idbloader.capsule
+	cp ${B}/rockpi4b_defconfig/u-boot.capsule ${DEPLOYDIR}/u-boot.capsule
 }
 
 ATF_DEPENDS = " trusted-firmware-a:do_deploy"
