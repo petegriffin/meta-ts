@@ -23,8 +23,6 @@ COMPATIBLE_MACHINE = "rockpi4b"
 
 DEPENDS += "trusted-firmware-a gnutls-native"
 
-PARALLEL_MAKE = ""
-
 do_compile:prepend() {
 	export BL31="${RECIPE_SYSROOT}/firmware/bl31.elf"
 	ls -l ${BL31}
