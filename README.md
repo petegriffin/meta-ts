@@ -1,6 +1,7 @@
 Introduction
 ------------
 This repository contains the Linaro Trustedsubstrate layers for OpenEmbedded.
+Oficial GIT is: https://git.codelinaro.org/linaro/dependable-boot/meta-ts
 
 * meta-trustedsubstrate
 
