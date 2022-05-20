@@ -62,8 +62,8 @@ Generate capsules
 
 ```
 $ cd meta-ts/build/tmp/work/rockpi4b-poky-linux/u-boot/1_2022.01-r1.ledge/build/rockpi4b_defconfig
-$ ./tools/mkeficapsule -i 0x1 -g 02f4d760-cfd5-43bd-8e2d-a42acb33c660 idbloader.img idbloader.capsule
-$ ./tools/mkeficapsule -i 0x2 -g 4ce292da-1dd8-428d-a1c2-77743ef8b96e u-boot.itb u-boot.capsule
+$ ./tools/mkeficapsule -i 0x1 -r idbloader.img idbloader.capsule
+$ ./tools/mkeficapsule -i 0x2 -r u-boot.itb u-boot.capsule
 ```
 
 Applying the capsules
