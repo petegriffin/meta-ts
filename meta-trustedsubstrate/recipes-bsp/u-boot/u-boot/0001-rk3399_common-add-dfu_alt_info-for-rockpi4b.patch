@@ -1,0 +1,44 @@
+From 87de343e8fb0c8beee80a12b3ac33d8cd37e2763 Mon Sep 17 00:00:00 2001
+From: Peter Griffin <peter.griffin@linaro.org>
+Date: Fri, 20 May 2022 11:47:52 +0100
+Subject: [PATCH] rk3399_common: add dfu_alt_info for rockpi4b
+
+See notes here:
+https://git.codelinaro.org/linaro/dependable-boot/meta-ts/-/blob/master/docs/README-rockchip.md
+and here:
+https://u-boot.readthedocs.io/en/v2022.04/develop/uefi/uefi.html?highlight=efidebug%20capsule%20disk-update#enabling-uefi-capsule-update-feature
+
+On how to generate and apply them.
+
+Signed-off-by: Peter Griffin <peter.griffin@linaro.org>
+---
+ include/configs/rk3399_common.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/include/configs/rk3399_common.h b/include/configs/rk3399_common.h
+index ed72c8bb6b..94a773414a 100644
+--- a/include/configs/rk3399_common.h
++++ b/include/configs/rk3399_common.h
+@@ -43,6 +43,11 @@
+ 
+ #ifndef CONFIG_SPL_BUILD
+ 
++# define DFU_ALT_INFO \
++        "dfu_alt_info=" \
++        "mmc 1=idbloader.img part 1 1;" \
++        "u-boot.itb part 1 4\0"
++
+ #define ENV_MEM_LAYOUT_SETTINGS \
+ 	"scriptaddr=0x00500000\0" \
+ 	"script_offset_f=0xffe000\0" \
+@@ -66,6 +71,7 @@
+ 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
+ 	"partitions=" PARTS_DEFAULT \
+ 	ROCKCHIP_DEVICE_SETTINGS \
++	DFU_ALT_INFO \
+ 	BOOTENV \
+ 	BOOTENV_SF \
+ 	"altbootcmd=" \
+-- 
+2.25.1
+
